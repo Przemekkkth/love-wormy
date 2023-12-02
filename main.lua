@@ -106,7 +106,6 @@ function love.keyreleased(key)
         state = STATES.MENU
     end
 
-
     if key == "escape" then
         love.event.quit()
     end
