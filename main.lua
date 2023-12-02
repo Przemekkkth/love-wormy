@@ -35,8 +35,8 @@ local STATES = {
 local HEAD = 1
 local state = STATES.MENU
 
-local BIGFONT   = love.graphics.newFont('/assets/fonts/juniory.ttf', 100)
-local BASICFONT   = love.graphics.newFont('/assets/fonts/juniory.ttf', 25)
+local BIGFONT   = love.graphics.newFont('/assets/fonts/early_gameboy.ttf', 100)
+local BASICFONT   = love.graphics.newFont('/assets/fonts/early_gameboy.ttf', 25)
 
 local degrees1 = 0 -- degrees of start text
 local degrees2 = 0 -- degrees of start text
@@ -57,12 +57,22 @@ local downHead     = love.graphics.newQuad( 0, 32, 32, 32, snakeHeadImg)
 local leftHead     = love.graphics.newQuad(32, 32, 32, 32, snakeHeadImg)
 
 apple.index  = 1
+local sounds = {}
 
 function love.load()
     love.window.setTitle(TITLE)
     love.window.setMode(WINDOWWIDTH, WINDOWHEIGHT)
     love.graphics.setBackgroundColor(BGCOLOR)
+    sounds.music = love.audio.newSource("assets/music/alex_gameboy.wav", "stream")
+    sounds.music:setLooping(true)
+    sounds.music:setVolume(0.05)
+    sounds.music:play()
 
+    sounds.pickUpSFX = love.audio.newSource("assets/sounds/pick_up.ogg", "static")
+    sounds.pickUpSFX:setVolume(0.5)
+
+    sounds.hitSFX = love.audio.newSource("assets/sounds/hit.ogg", "static")
+    sounds.hitSFX:setVolume(0.5)
 end
 
 function love.keypressed(key)
@@ -109,11 +119,13 @@ function love.update(dt)
             accumulatedTime = accumulatedTime - TIME_PER_FRAME
             -- check if the worm has hit itself or the edge
             if wormCoords[HEAD].x == -1 or wormCoords[HEAD].x == CELLWIDTH or wormCoords[HEAD].y == -1 or wormCoords[HEAD].y == CELLHEIGHT then
+                sounds.hitSFX:play()
                 state = STATES.GAME_OVER
                 return -- game over
             end
             for i = 2, #wormCoords do
                 if wormCoords[i].x == wormCoords[HEAD].x and wormCoords[i].y == wormCoords[HEAD].y then
+                    sounds.hitSFX:play()
                     state = STATES.GAME_OVER
                     return -- game over
                 end
@@ -121,6 +133,8 @@ function love.update(dt)
 
             -- check if worm has eaten an apply
             if wormCoords[HEAD].x == apple.x and wormCoords[HEAD].y == apple.y then
+                sounds.pickUpSFX:stop()
+                sounds.pickUpSFX:play()
                 -- don't remove worm's tail segment
                 apple = getRandomLocation() -- set a new apple somewhere
             else
@@ -147,13 +161,12 @@ function love.draw()
     if state == STATES.MENU then
         showStartScreen()
     elseif state == STATES.GAME then
-        --love.graphics.print("Game", 0, 0)
         drawGrid()
         drawApple()
         drawScore()
         drawWorm()
     elseif state == STATES.GAME_OVER then
-        love.graphics.print("GAME OVER", 0, 0)
+        showGameOverScreen()
     end
 end
 
@@ -182,6 +195,18 @@ function showStartScreen()
     love.graphics.setColor(1,1,1)
 end
 
+function showGameOverScreen() 
+    love.graphics.setFont(BIGFONT)
+    local titleText = "Game Over"
+    local font = love.graphics.getFont()
+    local textWidth = font:getWidth(titleText)
+    local textHeight = font:getHeight()
+    love.graphics.setColor(GREEN3)
+    love.graphics.print(titleText, WINDOWWIDTH/2, WINDOWHEIGHT/2, 0, 1, 1, textWidth/2, textHeight/2)
+
+    love.graphics.setColor(1,1,1)
+end
+
 function getRandomLocation()
     return {x = love.math.random(0, CELLWIDTH - 1), y = love.math.random(0, CELLHEIGHT - 1), index = love.math.random(1, 4)}
 end
@@ -189,7 +214,7 @@ end
 function drawScore()
     love.graphics.setFont(BASICFONT)
     love.graphics.setColor(GREEN3)
-    love.graphics.print("Score: "..tostring((#wormCoords-3)), WINDOWWIDTH - 120, 10)
+    love.graphics.print("Score: "..tostring((#wormCoords-3)), WINDOWWIDTH - 210, 10)
     love.graphics.setColor(1,1,1) 
 end
 
