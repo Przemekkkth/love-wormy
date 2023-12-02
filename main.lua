@@ -1,8 +1,8 @@
 local FPS = 15
 local TIME_PER_FRAME = 1 / FPS
 local TITLE = "Wormy"
-local WINDOWWIDTH  = 1024--640
-local WINDOWHEIGHT = 768--480
+local WINDOWWIDTH  = 1024
+local WINDOWHEIGHT = 768
 local CELLSIZE     = 32
 
 assert(WINDOWWIDTH % CELLSIZE == 0, "Window width must be a multiple of cell size.")
@@ -11,14 +11,14 @@ assert(WINDOWHEIGHT % CELLSIZE == 0, "Window height must be a multiple of cell s
 CELLWIDTH  = math.floor(WINDOWWIDTH / CELLSIZE)
 CELLHEIGHT = math.floor(WINDOWHEIGHT / CELLSIZE)
  
---             R    G    B
-local WHITE     = { 1.0, 1.0, 1.0} --(255, 255, 255)
-local BLACK     = {  .0,  .0,  .0} --(  0,   0,   0)
-local RED       = { 1.0,  .0,  .0} --(255,   0,   0)
-local GREEN     = {  .0, 1.0,  .0} --(  0, 255,   0)
-local DARKGREEN = {  .0, 0.6,  .0} --(  0, 155,   0)
-local DARKGRAY  = { .15, .15, .15} --( 40,  40,  40)
-local BGCOLOR = BLACK
+--                                     R    G    B
+local GREEN0 = { .60,  .73,  .05} --( 155, 188, 15)
+local GREEN1 = { .54,  .67,  .05} --( 139, 172, 15)
+local GREEN2 = { .18,  .38,  .18} --(  48,  98, 48)
+local GREEN3 = { .05,  .21,  .05} --(  15,  56, 15)
+
+local BGCOLOR = GREEN0
+local LINECOLOR = GREEN1
 
 local UP    = "up"
 local DOWN  = "down"
@@ -43,11 +43,26 @@ local degrees2 = 0 -- degrees of start text
 local direction = RIGHT
 local apple = {}
 local accumulatedTime = 0
+local fruitImage = love.graphics.newImage('assets/sprites/fruit.png')
+local fruit1 = love.graphics.newQuad(0, 0, 32, 32, fruitImage)
+local fruit2 = love.graphics.newQuad(32, 0, 32, 32, fruitImage)
+local fruit3 = love.graphics.newQuad(0, 32, 32, 32, fruitImage)
+local fruit4 = love.graphics.newQuad(32, 32, 32, 32, fruitImage)
+local snakeBodyImg = love.graphics.newImage('assets/sprites/body.png')
+
+local snakeHeadImg = love.graphics.newImage('assets/sprites/head.png')
+local upHead       = love.graphics.newQuad( 0,  0, 32, 32, snakeHeadImg)
+local rightHead    = love.graphics.newQuad(32,  0, 32, 32, snakeHeadImg)
+local downHead     = love.graphics.newQuad( 0, 32, 32, 32, snakeHeadImg)
+local leftHead     = love.graphics.newQuad(32, 32, 32, 32, snakeHeadImg)
+
+apple.index  = 1
 
 function love.load()
     love.window.setTitle(TITLE)
     love.window.setMode(WINDOWWIDTH, WINDOWHEIGHT)
-    love.graphics.setBackgroundColor(155/255, 188/255, 15/255)
+    love.graphics.setBackgroundColor(BGCOLOR)
+
 end
 
 function love.keypressed(key)
@@ -74,7 +89,6 @@ function love.keyreleased(key)
                        {x = startx - 1, y = starty},
                        {x = startx - 2, y = starty} }
         direction = RIGHT
-        print("startx ", startx)
         --Start the apple in a random place.
         apple = getRandomLocation()
         accumulatedTime = 0
@@ -149,54 +163,78 @@ function showStartScreen()
     local font = love.graphics.getFont()
     local textWidth = font:getWidth(titleText)
     local textHeight = font:getHeight()
-    love.graphics.setColor(WHITE)
+    love.graphics.setColor(GREEN2)
     love.graphics.print(titleText, WINDOWWIDTH/2, WINDOWHEIGHT/2, degrees1, 1, 1, textWidth/2, textHeight/2)
     
-    love.graphics.setColor(GREEN)
+    love.graphics.setColor(GREEN3)
     love.graphics.print(titleText, WINDOWWIDTH/2, WINDOWHEIGHT/2, degrees2, 1, 1, textWidth/2, textHeight/2)
     degrees1 = degrees1 + 0.01
     degrees2 = degrees2 + 0.015
 
-    love.graphics.setColor(RED)
+    love.graphics.setColor(GREEN3)
     love.graphics.setFont(BASICFONT)
-    love.graphics.print("Press a key to play.", WINDOWWIDTH/2, WINDOWHEIGHT - 30)
+    local hintText = "Press a key to play."
+    local font = love.graphics.getFont()
+    local textWidth = font:getWidth(hintText)
+    local textHeight = font:getHeight()
+    love.graphics.print( hintText, WINDOWWIDTH/2, WINDOWHEIGHT - 30, 0, 1, 1, textWidth/2, textHeight/2)
 
     love.graphics.setColor(1,1,1)
 end
 
 function getRandomLocation()
-    return {x = love.math.random(0, CELLWIDTH - 1), y = love.math.random(0, CELLHEIGHT - 1)}
+    return {x = love.math.random(0, CELLWIDTH - 1), y = love.math.random(0, CELLHEIGHT - 1), index = love.math.random(1, 4)}
 end
 
 function drawScore()
     love.graphics.setFont(BASICFONT)
-    love.graphics.print("Score: "..tostring((#wormCoords-3)), WINDOWWIDTH - 120, 10) 
+    love.graphics.setColor(GREEN3)
+    love.graphics.print("Score: "..tostring((#wormCoords-3)), WINDOWWIDTH - 120, 10)
+    love.graphics.setColor(1,1,1) 
 end
 
 function drawApple()
-    love.graphics.setColor(RED)
-    love.graphics.rectangle("fill", apple.x * CELLSIZE, apple.y * CELLSIZE, CELLSIZE, CELLSIZE)
-    love.graphics.setColor(1, 1, 1)
+    if apple.index == 1 then
+        love.graphics.draw(fruitImage, fruit1, apple.x * CELLSIZE, apple.y * CELLSIZE)
+    elseif apple.index == 2 then
+        love.graphics.draw(fruitImage, fruit2, apple.x * CELLSIZE, apple.y * CELLSIZE)
+    elseif apple.index == 3 then 
+        love.graphics.draw(fruitImage, fruit3, apple.x * CELLSIZE, apple.y * CELLSIZE)
+    elseif apple.index == 4 then
+        love.graphics.draw(fruitImage, fruit4, apple.x * CELLSIZE, apple.y * CELLSIZE)
+    end
+    love.graphics.setColor(1,1,1)
 end
 
 function drawWorm()
-    for i = 1, #wormCoords do
-        love.graphics.setColor(DARKGREEN)
+    local x = wormCoords[1].x * CELLSIZE
+    local y = wormCoords[1].y * CELLSIZE
+    if direction == UP then
+        love.graphics.draw(snakeHeadImg, upHead, x , y)
+    elseif direction == RIGHT then
+        love.graphics.draw(snakeHeadImg, rightHead, x, y)
+    elseif direction == LEFT then
+        love.graphics.draw(snakeHeadImg, leftHead, x , y)
+    elseif direction == DOWN then
+        love.graphics.draw(snakeHeadImg, downHead, x, y)
+    end
+    love.graphics.origin()
+    for i = 2, #wormCoords do
         local x = wormCoords[i].x * CELLSIZE
         local y = wormCoords[i].y * CELLSIZE
-        love.graphics.rectangle("fill", x, y, CELLSIZE, CELLSIZE)
-        love.graphics.setColor(GREEN)
-        love.graphics.rectangle("fill", x + 4, y + 4, CELLSIZE - 8, CELLSIZE - 8)
+        love.graphics.draw(snakeBodyImg, x, y)
     end
+    love.graphics.setColor(1,1,1)
 end
 
 function drawGrid()
     for x = 0, WINDOWWIDTH, CELLSIZE do -- draw vertical lines
-        love.graphics.setColor(DARKGRAY)
+        love.graphics.setColor(LINECOLOR)
         love.graphics.line(x, 0, x, WINDOWHEIGHT)
     end
     for y = 0, WINDOWHEIGHT, CELLSIZE  do -- draw horizontal lines
-        love.graphics.setColor(DARKGRAY)
+        love.graphics.setColor(LINECOLOR)
         love.graphics.line(0, y, WINDOWWIDTH, y)
     end
+    love.graphics.setColor(1,1,1)
 end
